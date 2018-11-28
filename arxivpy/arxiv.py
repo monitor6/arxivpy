@@ -74,7 +74,25 @@ def query(search_query=['cs.CV', 'cs.LG', 'cs.CL', 'cs.NE', 'stat.ML'],
         comment: comment of the article if available
         journal_ref: reference to the journal if existed
     """
+    it = iterquery(search_query,          
+                   results_per_iteration,
+                   wait_time,
+                   sort_by,
+                   sort_order,
+                   verbose)
+    return list(it)
 
+def iterquery(search_query=['cs.CV', 'cs.LG', 'cs.CL', 'cs.NE', 'stat.ML'],
+              start_index=0,
+              max_index=100,
+              results_per_iteration=100,
+              wait_time=5.0,
+              sort_by='lastUpdatedDate',
+              sort_order=None,
+              verbose=False):
+    """
+    Same interface as `query` but returns a generator.
+    """
     base_url = 'http://export.arxiv.org/api/query?'
 
     if isinstance(search_query, list):
@@ -99,7 +117,6 @@ def query(search_query=['cs.CV', 'cs.LG', 'cs.CL', 'cs.NE', 'stat.ML'],
     else:
         sort_order_query = ''
 
-    articles_all = list()
     for i in range(start_index, max_index, results_per_iteration):
         start_query = 'start=%i' % int(i)
         max_results_query = 'max_results=%i' % int(results_per_iteration)
@@ -112,7 +129,6 @@ def query(search_query=['cs.CV', 'cs.LG', 'cs.CL', 'cs.NE', 'stat.ML'],
             print('start index = %i, end index = %i' % (int(i), int(i + results_per_iteration)))
             print('arXiv query: \n %s' % base_url + query)
 
-        articles = list()
         response = urlopen(base_url + query).read()
         entries = feedparser.parse(response)
         for entry in entries['entries']:
@@ -154,10 +170,9 @@ def query(search_query=['cs.CV', 'cs.LG', 'cs.CL', 'cs.NE', 'stat.ML'],
                        'publish_date': publish_date,
                        'comment': comment,
                        'journal_ref': journal_ref}
-            articles.append(article)
+            yield article
         if i > start_index: time.sleep(wait_time + random.uniform(0, 3))
-        articles_all.extend(articles)
-    return articles_all
+    return
 
 def generate_query(terms, prefix='category', boolean='OR', group_bool=False):
     """
